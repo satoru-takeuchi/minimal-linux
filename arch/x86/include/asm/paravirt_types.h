@@ -297,9 +297,6 @@ struct pv_mmu_ops {
 } __no_randomize_layout;
 
 struct arch_spinlock;
-#ifdef CONFIG_SMP
-#include <asm/spinlock_types.h>
-#endif
 
 struct qspinlock;
 

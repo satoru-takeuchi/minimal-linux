@@ -8,14 +8,6 @@
  *  handled in sched/fair.c)
  */
 
-#ifdef CONFIG_SMP
-static int
-select_task_rq_idle(struct task_struct *p, int cpu, int sd_flag, int flags)
-{
-	return task_cpu(p); /* IDLE tasks as never migrated */
-}
-#endif /* CONFIG_SMP */
-
 /*
  * Idle tasks are unconditionally rescheduled:
  */
@@ -93,11 +85,6 @@ const struct sched_class idle_sched_class = {
 
 	.pick_next_task		= pick_next_task_idle,
 	.put_prev_task		= put_prev_task_idle,
-
-#ifdef CONFIG_SMP
-	.select_task_rq		= select_task_rq_idle,
-	.set_cpus_allowed	= set_cpus_allowed_common,
-#endif
 
 	.set_curr_task          = set_curr_task_idle,
 	.task_tick		= task_tick_idle,

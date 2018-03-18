@@ -47,9 +47,7 @@ static DEFINE_PER_CPU(struct pagevec, lru_add_pvec);
 static DEFINE_PER_CPU(struct pagevec, lru_rotate_pvecs);
 static DEFINE_PER_CPU(struct pagevec, lru_deactivate_file_pvecs);
 static DEFINE_PER_CPU(struct pagevec, lru_lazyfree_pvecs);
-#ifdef CONFIG_SMP
-static DEFINE_PER_CPU(struct pagevec, activate_page_pvecs);
-#endif
+
 
 /*
  * This path almost never happens for VM activity - pages are normally
@@ -288,34 +286,6 @@ static void __activate_page(struct page *page, struct lruvec *lruvec,
 	}
 }
 
-#ifdef CONFIG_SMP
-static void activate_page_drain(int cpu)
-{
-	struct pagevec *pvec = &per_cpu(activate_page_pvecs, cpu);
-
-	if (pagevec_count(pvec))
-		pagevec_lru_move_fn(pvec, __activate_page, NULL);
-}
-
-static bool need_activate_page_drain(int cpu)
-{
-	return pagevec_count(&per_cpu(activate_page_pvecs, cpu)) != 0;
-}
-
-void activate_page(struct page *page)
-{
-	page = compound_head(page);
-	if (PageLRU(page) && !PageActive(page) && !PageUnevictable(page)) {
-		struct pagevec *pvec = &get_cpu_var(activate_page_pvecs);
-
-		get_page(page);
-		if (!pagevec_add(pvec, page) || PageCompound(page))
-			pagevec_lru_move_fn(pvec, __activate_page, NULL);
-		put_cpu_var(activate_page_pvecs);
-	}
-}
-
-#else
 static inline void activate_page_drain(int cpu)
 {
 }
@@ -334,7 +304,6 @@ void activate_page(struct page *page)
 	__activate_page(page, mem_cgroup_page_lruvec(page, zone->zone_pgdat), NULL);
 	spin_unlock_irq(zone_lru_lock(zone));
 }
-#endif
 
 static void __lru_cache_activate_page(struct page *page)
 {

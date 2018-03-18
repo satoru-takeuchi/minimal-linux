@@ -297,113 +297,17 @@ static int nearby_node(int apicid)
 }
 #endif
 
-#ifdef CONFIG_SMP
-/*
- * Fix up cpu_core_id for pre-F17h systems to be in the
- * [0 .. cores_per_node - 1] range. Not really needed but
- * kept so as not to break existing setups.
- */
-static void legacy_fixup_core_id(struct cpuinfo_x86 *c)
-{
-	u32 cus_per_node;
-
-	if (c->x86 >= 0x17)
-		return;
-
-	cus_per_node = c->x86_max_cores / nodes_per_socket;
-	c->cpu_core_id %= cus_per_node;
-}
-
-/*
- * Fixup core topology information for
- * (1) AMD multi-node processors
- *     Assumption: Number of cores in each internal node is the same.
- * (2) AMD processors supporting compute units
- */
-static void amd_get_topology(struct cpuinfo_x86 *c)
-{
-	u8 node_id;
-	int cpu = smp_processor_id();
-
-	/* get information required for multi-node processors */
-	if (boot_cpu_has(X86_FEATURE_TOPOEXT)) {
-		u32 eax, ebx, ecx, edx;
-
-		cpuid(0x8000001e, &eax, &ebx, &ecx, &edx);
-
-		node_id  = ecx & 0xff;
-		smp_num_siblings = ((ebx >> 8) & 0xff) + 1;
-
-		if (c->x86 == 0x15)
-			c->cu_id = ebx & 0xff;
-
-		if (c->x86 >= 0x17) {
-			c->cpu_core_id = ebx & 0xff;
-
-			if (smp_num_siblings > 1)
-				c->x86_max_cores /= smp_num_siblings;
-		}
-
-		/*
-		 * We may have multiple LLCs if L3 caches exist, so check if we
-		 * have an L3 cache by looking at the L3 cache CPUID leaf.
-		 */
-		if (cpuid_edx(0x80000006)) {
-			if (c->x86 == 0x17) {
-				/*
-				 * LLC is at the core complex level.
-				 * Core complex id is ApicId[3].
-				 */
-				per_cpu(cpu_llc_id, cpu) = c->apicid >> 3;
-			} else {
-				/* LLC is at the node level. */
-				per_cpu(cpu_llc_id, cpu) = node_id;
-			}
-		}
-	} else if (cpu_has(c, X86_FEATURE_NODEID_MSR)) {
-		u64 value;
-
-		rdmsrl(MSR_FAM10H_NODE_ID, value);
-		node_id = value & 7;
-
-		per_cpu(cpu_llc_id, cpu) = node_id;
-	} else
-		return;
-
-	if (nodes_per_socket > 1) {
-		set_cpu_cap(c, X86_FEATURE_AMD_DCM);
-		legacy_fixup_core_id(c);
-	}
-}
-#endif
-
 /*
  * On a AMD dual core setup the lower bits of the APIC id distinguish the cores.
  * Assumes number of cores is a power of two.
  */
 static void amd_detect_cmp(struct cpuinfo_x86 *c)
 {
-#ifdef CONFIG_SMP
-	unsigned bits;
-	int cpu = smp_processor_id();
-
-	bits = c->x86_coreid_bits;
-	/* Low order bits define the core id (index of core in socket) */
-	c->cpu_core_id = c->initial_apicid & ((1 << bits)-1);
-	/* Convert the initial APIC ID into the socket ID */
-	c->phys_proc_id = c->initial_apicid >> bits;
-	/* use socket ID also for last level cache */
-	per_cpu(cpu_llc_id, cpu) = c->phys_proc_id;
-	amd_get_topology(c);
-#endif
 }
 
 u16 amd_get_nb_id(int cpu)
 {
 	u16 id = 0;
-#ifdef CONFIG_SMP
-	id = per_cpu(cpu_llc_id, cpu);
-#endif
 	return id;
 }
 EXPORT_SYMBOL_GPL(amd_get_nb_id);
@@ -467,28 +371,6 @@ static void srat_detect_node(struct cpuinfo_x86 *c)
 
 static void early_init_amd_mc(struct cpuinfo_x86 *c)
 {
-#ifdef CONFIG_SMP
-	unsigned bits, ecx;
-
-	/* Multi core CPU? */
-	if (c->extended_cpuid_level < 0x80000008)
-		return;
-
-	ecx = cpuid_ecx(0x80000008);
-
-	c->x86_max_cores = (ecx & 0xff) + 1;
-
-	/* CPU telling us the core id bits shift? */
-	bits = (ecx >> 12) & 0xF;
-
-	/* Otherwise recompute */
-	if (bits == 0) {
-		while ((1 << bits) < c->x86_max_cores)
-			bits++;
-	}
-
-	c->x86_coreid_bits = bits;
-#endif
 }
 
 static void bsp_init_amd(struct cpuinfo_x86 *c)
@@ -675,16 +557,6 @@ static void init_amd_k8(struct cpuinfo_x86 *c)
 	if (!c->x86_model_id[0])
 		strcpy(c->x86_model_id, "Hammer");
 
-#ifdef CONFIG_SMP
-	/*
-	 * Disable TLB flush filter by setting HWCR.FFDIS on K8
-	 * bit 6 of msr C001_0015
-	 *
-	 * Errata 63 for SH-B3 steppings
-	 * Errata 122 for all steppings (F+ have it disabled by default)
-	 */
-	msr_set_bit(MSR_K7_HWCR, 6);
-#endif
 	set_cpu_bug(c, X86_BUG_SWAPGS_FENCE);
 }
 

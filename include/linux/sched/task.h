@@ -80,11 +80,7 @@ extern long kernel_wait4(pid_t, int *, int, struct rusage *);
 extern void free_task(struct task_struct *tsk);
 
 /* sched_exec is called by processes performing an exec */
-#ifdef CONFIG_SMP
-extern void sched_exec(void);
-#else
 #define sched_exec()   {}
-#endif
 
 #define get_task_struct(tsk) do { atomic_inc(&(tsk)->usage); } while(0)
 

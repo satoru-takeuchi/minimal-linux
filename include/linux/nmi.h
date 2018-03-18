@@ -25,13 +25,8 @@ extern unsigned long watchdog_enabled;
 
 extern struct cpumask watchdog_cpumask;
 extern unsigned long *watchdog_cpumask_bits;
-#ifdef CONFIG_SMP
-extern int sysctl_softlockup_all_cpu_backtrace;
-extern int sysctl_hardlockup_all_cpu_backtrace;
-#else
 #define sysctl_softlockup_all_cpu_backtrace 0
 #define sysctl_hardlockup_all_cpu_backtrace 0
-#endif /* !CONFIG_SMP */
 
 #else /* CONFIG_LOCKUP_DETECTOR */
 static inline void lockup_detector_init(void) { }

@@ -815,7 +815,6 @@ unsigned long native_calibrate_cpu(void)
 
 void recalibrate_cpu_khz(void)
 {
-#ifndef CONFIG_SMP
 	unsigned long cpu_khz_old = cpu_khz;
 
 	if (!boot_cpu_has(X86_FEATURE_TSC))
@@ -829,7 +828,6 @@ void recalibrate_cpu_khz(void)
 		cpu_khz = tsc_khz;
 	cpu_data(0).loops_per_jiffy = cpufreq_scale(cpu_data(0).loops_per_jiffy,
 						    cpu_khz_old, cpu_khz);
-#endif
 }
 
 EXPORT_SYMBOL(recalibrate_cpu_khz);
@@ -906,10 +904,6 @@ static int time_cpufreq_notifier(struct notifier_block *nb, unsigned long val,
 	unsigned long *lpj;
 
 	lpj = &boot_cpu_data.loops_per_jiffy;
-#ifdef CONFIG_SMP
-	if (!(freq->flags & CPUFREQ_CONST_LOOPS))
-		lpj = &cpu_data(freq->cpu).loops_per_jiffy;
-#endif
 
 	if (!ref_freq) {
 		ref_freq = freq->old;
@@ -1100,11 +1094,6 @@ int unsynchronized_tsc(void)
 {
 	if (!boot_cpu_has(X86_FEATURE_TSC) || tsc_unstable)
 		return 1;
-
-#ifdef CONFIG_SMP
-	if (apic_is_clustered_box())
-		return 1;
-#endif
 
 	if (boot_cpu_has(X86_FEATURE_CONSTANT_TSC))
 		return 0;
@@ -1361,26 +1350,3 @@ void __init tsc_init(void)
 
 	detect_art();
 }
-
-#ifdef CONFIG_SMP
-/*
- * If we have a constant TSC and are using the TSC for the delay loop,
- * we can skip clock calibration if another cpu in the same socket has already
- * been calibrated. This assumes that CONSTANT_TSC applies to all
- * cpus in the socket - this should be a safe assumption.
- */
-unsigned long calibrate_delay_is_known(void)
-{
-	int sibling, cpu = smp_processor_id();
-	int constant_tsc = cpu_has(&cpu_data(cpu), X86_FEATURE_CONSTANT_TSC);
-	const struct cpumask *mask = topology_core_cpumask(cpu);
-
-	if (tsc_disabled || !constant_tsc || !mask)
-		return 0;
-
-	sibling = cpumask_any_but(mask, cpu);
-	if (sibling < nr_cpu_ids)
-		return cpu_data(sibling).loops_per_jiffy;
-	return 0;
-}
-#endif

@@ -7,10 +7,6 @@
 #ifndef __ASM_GENERIC_CMPXCHG_H
 #define __ASM_GENERIC_CMPXCHG_H
 
-#ifdef CONFIG_SMP
-#error "Cannot use generic cmpxchg on SMP"
-#endif
-
 #include <linux/types.h>
 #include <linux/irqflags.h>
 

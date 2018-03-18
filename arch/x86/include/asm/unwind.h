@@ -110,11 +110,7 @@ void unwind_module_init(struct module *mod, void *orc_ip, size_t orc_ip_size,
 
 static inline bool task_on_another_cpu(struct task_struct *task)
 {
-#ifdef CONFIG_SMP
-	return task != current && task->on_cpu;
-#else
 	return false;
-#endif
 }
 
 #endif /* _ASM_X86_UNWIND_H */

@@ -638,53 +638,6 @@ static void cpu_detect_tlb(struct cpuinfo_x86 *c)
 
 void detect_ht(struct cpuinfo_x86 *c)
 {
-#ifdef CONFIG_SMP
-	u32 eax, ebx, ecx, edx;
-	int index_msb, core_bits;
-	static bool printed;
-
-	if (!cpu_has(c, X86_FEATURE_HT))
-		return;
-
-	if (cpu_has(c, X86_FEATURE_CMP_LEGACY))
-		goto out;
-
-	if (cpu_has(c, X86_FEATURE_XTOPOLOGY))
-		return;
-
-	cpuid(1, &eax, &ebx, &ecx, &edx);
-
-	smp_num_siblings = (ebx & 0xff0000) >> 16;
-
-	if (smp_num_siblings == 1) {
-		pr_info_once("CPU0: Hyper-Threading is disabled\n");
-		goto out;
-	}
-
-	if (smp_num_siblings <= 1)
-		goto out;
-
-	index_msb = get_count_order(smp_num_siblings);
-	c->phys_proc_id = apic->phys_pkg_id(c->initial_apicid, index_msb);
-
-	smp_num_siblings = smp_num_siblings / c->x86_max_cores;
-
-	index_msb = get_count_order(smp_num_siblings);
-
-	core_bits = get_count_order(c->x86_max_cores);
-
-	c->cpu_core_id = apic->phys_pkg_id(c->initial_apicid, index_msb) &
-				       ((1 << core_bits) - 1);
-
-out:
-	if (!printed && (c->x86_max_cores * smp_num_siblings) > 1) {
-		pr_info("CPU: Physical Processor ID: %d\n",
-			c->phys_proc_id);
-		pr_info("CPU: Processor Core ID: %d\n",
-			c->cpu_core_id);
-		printed = 1;
-	}
-#endif
 }
 
 static void get_cpu_vendor(struct cpuinfo_x86 *c)
@@ -1040,11 +993,7 @@ static void generic_identify(struct cpuinfo_x86 *c)
 	if (c->cpuid_level >= 0x00000001) {
 		c->initial_apicid = (cpuid_ebx(1) >> 24) & 0xFF;
 #ifdef CONFIG_X86_32
-# ifdef CONFIG_SMP
-		c->apicid = apic->phys_pkg_id(c->initial_apicid, 0);
-# else
 		c->apicid = c->initial_apicid;
-# endif
 #endif
 		c->phys_proc_id = c->initial_apicid;
 	}
@@ -1101,19 +1050,7 @@ static void x86_init_cache_qos(struct cpuinfo_x86 *c)
  */
 static void validate_apic_and_package_id(struct cpuinfo_x86 *c)
 {
-#ifdef CONFIG_SMP
-	unsigned int apicid, cpu = smp_processor_id();
-
-	apicid = apic->cpu_present_to_apicid(cpu);
-
-	if (apicid != c->apicid) {
-		pr_err(FW_BUG "CPU%u: APIC id mismatch. Firmware: %x APIC: %x\n",
-		       cpu, apicid, c->initial_apicid);
-	}
-	BUG_ON(topology_update_package_map(c->phys_proc_id, cpu));
-#else
 	c->logical_proc_id = 0;
-#endif
 }
 
 /*
@@ -1485,15 +1422,6 @@ static void dbg_restore_debug_regs(void)
 
 static void wait_for_master_cpu(int cpu)
 {
-#ifdef CONFIG_SMP
-	/*
-	 * wait for ACK from master CPU before continuing
-	 * with AP initialization
-	 */
-	WARN_ON(cpumask_test_and_set_cpu(cpu, cpu_initialized_mask));
-	while (!cpumask_test_cpu(cpu, cpu_callout_mask))
-		cpu_relax();
-#endif
 }
 
 /*

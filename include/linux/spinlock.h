@@ -84,11 +84,7 @@
 /*
  * Pull the arch_spin*() functions/declarations (UP-nondebug doesn't need them):
  */
-#ifdef CONFIG_SMP
-# include <asm/spinlock.h>
-#else
 # include <linux/spinlock_up.h>
-#endif
 
 #ifdef CONFIG_DEBUG_SPINLOCK
   extern void __raw_spin_lock_init(raw_spinlock_t *lock, const char *name,
@@ -214,30 +210,6 @@ static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock)
 # define raw_spin_lock_nest_lock(lock, nest_lock)	_raw_spin_lock(lock)
 #endif
 
-#if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
-
-#define raw_spin_lock_irqsave(lock, flags)			\
-	do {						\
-		typecheck(unsigned long, flags);	\
-		flags = _raw_spin_lock_irqsave(lock);	\
-	} while (0)
-
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-#define raw_spin_lock_irqsave_nested(lock, flags, subclass)		\
-	do {								\
-		typecheck(unsigned long, flags);			\
-		flags = _raw_spin_lock_irqsave_nested(lock, subclass);	\
-	} while (0)
-#else
-#define raw_spin_lock_irqsave_nested(lock, flags, subclass)		\
-	do {								\
-		typecheck(unsigned long, flags);			\
-		flags = _raw_spin_lock_irqsave(lock);			\
-	} while (0)
-#endif
-
-#else
-
 #define raw_spin_lock_irqsave(lock, flags)		\
 	do {						\
 		typecheck(unsigned long, flags);	\
@@ -246,8 +218,6 @@ static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock)
 
 #define raw_spin_lock_irqsave_nested(lock, flags, subclass)	\
 	raw_spin_lock_irqsave(lock, flags)
-
-#endif
 
 #define raw_spin_lock_irq(lock)		_raw_spin_lock_irq(lock)
 #define raw_spin_lock_bh(lock)		_raw_spin_lock_bh(lock)
@@ -284,11 +254,7 @@ static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock)
 /*
  * Pull the _spin_*()/_read_*()/_write_*() functions/declarations:
  */
-#if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
-# include <linux/spinlock_api_smp.h>
-#else
 # include <linux/spinlock_api_up.h>
-#endif
 
 /*
  * Map the spin_lock functions to the raw variants for PREEMPT_RT=n

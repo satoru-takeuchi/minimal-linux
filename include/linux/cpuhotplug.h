@@ -381,10 +381,6 @@ static inline int cpuhp_state_remove_instance_nocalls(enum cpuhp_state state,
 	return __cpuhp_state_remove_instance(state, node, false);
 }
 
-#ifdef CONFIG_SMP
-void cpuhp_online_idle(enum cpuhp_state state);
-#else
 static inline void cpuhp_online_idle(enum cpuhp_state state) { }
-#endif
 
 #endif

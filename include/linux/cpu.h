@@ -75,14 +75,6 @@ extern ssize_t arch_cpu_release(const char *, size_t);
 #define CPU_POST_DEAD		0x0009 /* CPU successfully unplugged */
 #define CPU_BROKEN		0x000B /* CPU did not die properly */
 
-#ifdef CONFIG_SMP
-extern bool cpuhp_tasks_frozen;
-int cpu_up(unsigned int cpu);
-void notify_cpu_starting(unsigned int cpu);
-extern void cpu_maps_update_begin(void);
-extern void cpu_maps_update_done(void);
-
-#else	/* CONFIG_SMP */
 #define cpuhp_tasks_frozen	0
 
 static inline void cpu_maps_update_begin(void)
@@ -93,7 +85,6 @@ static inline void cpu_maps_update_done(void)
 {
 }
 
-#endif /* CONFIG_SMP */
 extern struct bus_type cpu_subsys;
 
 #ifdef CONFIG_HOTPLUG_CPU

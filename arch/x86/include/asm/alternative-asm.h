@@ -6,18 +6,8 @@
 
 #include <asm/asm.h>
 
-#ifdef CONFIG_SMP
-	.macro LOCK_PREFIX
-672:	lock
-	.pushsection .smp_locks,"a"
-	.balign 4
-	.long 672b - .
-	.popsection
-	.endm
-#else
 	.macro LOCK_PREFIX
 	.endm
-#endif
 
 /*
  * Issue one struct alt_instr descriptor entry (need to put it into

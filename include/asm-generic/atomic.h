@@ -35,46 +35,6 @@
  * Atomically $ops @i to @v. Does imply a full memory barrier.
  */
 
-#ifdef CONFIG_SMP
-
-/* we can build all atomic primitives from cmpxchg */
-
-#define ATOMIC_OP(op, c_op)						\
-static inline void atomic_##op(int i, atomic_t *v)			\
-{									\
-	int c, old;							\
-									\
-	c = v->counter;							\
-	while ((old = cmpxchg(&v->counter, c, c c_op i)) != c)		\
-		c = old;						\
-}
-
-#define ATOMIC_OP_RETURN(op, c_op)					\
-static inline int atomic_##op##_return(int i, atomic_t *v)		\
-{									\
-	int c, old;							\
-									\
-	c = v->counter;							\
-	while ((old = cmpxchg(&v->counter, c, c c_op i)) != c)		\
-		c = old;						\
-									\
-	return c c_op i;						\
-}
-
-#define ATOMIC_FETCH_OP(op, c_op)					\
-static inline int atomic_fetch_##op(int i, atomic_t *v)			\
-{									\
-	int c, old;							\
-									\
-	c = v->counter;							\
-	while ((old = cmpxchg(&v->counter, c, c c_op i)) != c)		\
-		c = old;						\
-									\
-	return c;							\
-}
-
-#else
-
 #include <linux/irqflags.h>
 
 #define ATOMIC_OP(op, c_op)						\
@@ -113,8 +73,6 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
 									\
 	return ret;							\
 }
-
-#endif /* CONFIG_SMP */
 
 #ifndef atomic_add_return
 ATOMIC_OP_RETURN(add, +)

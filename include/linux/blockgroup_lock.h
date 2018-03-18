@@ -10,11 +10,7 @@
 #include <linux/spinlock.h>
 #include <linux/cache.h>
 
-#ifdef CONFIG_SMP
-#define NR_BG_LOCKS	(4 << ilog2(NR_CPUS < 32 ? NR_CPUS : 32))
-#else
 #define NR_BG_LOCKS	1
-#endif
 
 struct bgl_lock {
 	spinlock_t lock;

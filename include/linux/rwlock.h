@@ -70,21 +70,6 @@ do {								\
 #define write_lock(lock)	_raw_write_lock(lock)
 #define read_lock(lock)		_raw_read_lock(lock)
 
-#if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
-
-#define read_lock_irqsave(lock, flags)			\
-	do {						\
-		typecheck(unsigned long, flags);	\
-		flags = _raw_read_lock_irqsave(lock);	\
-	} while (0)
-#define write_lock_irqsave(lock, flags)			\
-	do {						\
-		typecheck(unsigned long, flags);	\
-		flags = _raw_write_lock_irqsave(lock);	\
-	} while (0)
-
-#else
-
 #define read_lock_irqsave(lock, flags)			\
 	do {						\
 		typecheck(unsigned long, flags);	\
@@ -95,8 +80,6 @@ do {								\
 		typecheck(unsigned long, flags);	\
 		_raw_write_lock_irqsave(lock, flags);	\
 	} while (0)
-
-#endif
 
 #define read_lock_irq(lock)		_raw_read_lock_irq(lock)
 #define read_lock_bh(lock)		_raw_read_lock_bh(lock)

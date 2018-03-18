@@ -2,11 +2,7 @@
 #include <generated/utsrelease.h>
 
 /* Simply sanity version stamp for modules. */
-#ifdef CONFIG_SMP
-#define MODULE_VERMAGIC_SMP "SMP "
-#else
 #define MODULE_VERMAGIC_SMP ""
-#endif
 #ifdef CONFIG_PREEMPT
 #define MODULE_VERMAGIC_PREEMPT "preempt "
 #else

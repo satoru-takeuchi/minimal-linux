@@ -91,20 +91,6 @@ int arch_show_interrupts(struct seq_file *p, int prec)
 		seq_puts(p, "  Platform interrupts\n");
 	}
 #endif
-#ifdef CONFIG_SMP
-	seq_printf(p, "%*s: ", prec, "RES");
-	for_each_online_cpu(j)
-		seq_printf(p, "%10u ", irq_stats(j)->irq_resched_count);
-	seq_puts(p, "  Rescheduling interrupts\n");
-	seq_printf(p, "%*s: ", prec, "CAL");
-	for_each_online_cpu(j)
-		seq_printf(p, "%10u ", irq_stats(j)->irq_call_count);
-	seq_puts(p, "  Function call interrupts\n");
-	seq_printf(p, "%*s: ", prec, "TLB");
-	for_each_online_cpu(j)
-		seq_printf(p, "%10u ", irq_stats(j)->irq_tlb_count);
-	seq_puts(p, "  TLB shootdowns\n");
-#endif
 #ifdef CONFIG_X86_THERMAL_VECTOR
 	seq_printf(p, "%*s: ", prec, "TRM");
 	for_each_online_cpu(j)
@@ -182,10 +168,6 @@ u64 arch_irq_stat_cpu(unsigned int cpu)
 	sum += irq_stats(cpu)->icr_read_retry_count;
 	if (x86_platform_ipi_callback)
 		sum += irq_stats(cpu)->x86_platform_ipis;
-#endif
-#ifdef CONFIG_SMP
-	sum += irq_stats(cpu)->irq_resched_count;
-	sum += irq_stats(cpu)->irq_call_count;
 #endif
 #ifdef CONFIG_X86_THERMAL_VECTOR
 	sum += irq_stats(cpu)->irq_thermal_count;

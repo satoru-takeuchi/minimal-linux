@@ -140,11 +140,7 @@
 /* another data segment: */
 #define PNP_TS2				(GDT_ENTRY_PNPBIOS_TS2*8)
 
-#ifdef CONFIG_SMP
-# define __KERNEL_PERCPU		(GDT_ENTRY_PERCPU*8)
-#else
 # define __KERNEL_PERCPU		0
-#endif
 
 #ifdef CONFIG_CC_STACKPROTECTOR
 # define __KERNEL_STACK_CANARY		(GDT_ENTRY_STACK_CANARY*8)

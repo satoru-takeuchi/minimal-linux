@@ -73,13 +73,7 @@ struct irq_desc {
 	raw_spinlock_t		lock;
 	struct cpumask		*percpu_enabled;
 	const struct cpumask	*percpu_affinity;
-#ifdef CONFIG_SMP
-	const struct cpumask	*affinity_hint;
-	struct irq_affinity_notify *affinity_notify;
-#ifdef CONFIG_GENERIC_PENDING_IRQ
-	cpumask_var_t		pending_mask;
-#endif
-#endif
+
 	unsigned long		threads_oneshot;
 	atomic_t		threads_active;
 	wait_queue_head_t       wait_for_threads;

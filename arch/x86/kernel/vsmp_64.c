@@ -97,18 +97,6 @@ static void __init set_vsmp_pv_ops(void)
 	printk(KERN_INFO "vSMP CTL: capabilities:0x%08x  control:0x%08x\n",
 	       cap, ctl);
 
-	/* If possible, let the vSMP foundation route the interrupt optimally */
-#ifdef CONFIG_SMP
-	if (cap & ctl & BIT(8)) {
-		ctl &= ~BIT(8);
-
-#ifdef CONFIG_PROC_FS
-		/* Don't let users change irq affinity via procfs */
-		no_irq_affinity = 1;
-#endif
-	}
-#endif
-
 	if (cap & ctl & (1 << 4)) {
 		/* Setup irq ops and turn on vSMP  IRQ fastpath handling */
 		pv_irq_ops.irq_disable = PV_CALLEE_SAVE(vsmp_irq_disable);

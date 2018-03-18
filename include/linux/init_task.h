@@ -21,12 +21,7 @@
 
 #include <asm/thread_info.h>
 
-#ifdef CONFIG_SMP
-# define INIT_PUSHABLE_TASKS(tsk)					\
-	.pushable_tasks = PLIST_NODE_INIT(tsk.pushable_tasks, MAX_PRIO),
-#else
 # define INIT_PUSHABLE_TASKS(tsk)
-#endif
 
 extern struct files_struct init_files;
 extern struct fs_struct init_fs;

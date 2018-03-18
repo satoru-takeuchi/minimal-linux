@@ -90,30 +90,6 @@ DEFINE_IRQ_VECTOR_EVENT(irq_work);
 TRACE_EVENT_PERF_PERM(irq_work_exit, is_sampling_event(p_event) ? -EPERM : 0);
 #endif
 
-/*
- * The ifdef is required because that tracepoint macro hell emits tracepoint
- * code in files which include this header even if the tracepoint is not
- * enabled. Brilliant stuff that.
- */
-#ifdef CONFIG_SMP
-/*
- * reschedule - called when entering/exiting a reschedule vector handler
- */
-DEFINE_RESCHED_IPI_EVENT(reschedule);
-
-/*
- * call_function - called when entering/exiting a call function interrupt
- * vector handler
- */
-DEFINE_IRQ_VECTOR_EVENT(call_function);
-
-/*
- * call_function_single - called when entering/exiting a call function
- * single interrupt vector handler
- */
-DEFINE_IRQ_VECTOR_EVENT(call_function_single);
-#endif
-
 #ifdef CONFIG_X86_MCE_THRESHOLD
 /*
  * threshold_apic - called when entering/exiting a threshold apic interrupt

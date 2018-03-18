@@ -223,9 +223,6 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
  * if (WARN_ON_SMP(x)) returns true only when CONFIG_SMP is set
  * and x is true.
  */
-#ifdef CONFIG_SMP
-# define WARN_ON_SMP(x)			WARN_ON(x)
-#else
 /*
  * Use of ({0;}) because WARN_ON_SMP(x) may be used either as
  * a stand alone line statement or as a condition in an if ()
@@ -234,7 +231,6 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
  * warning.
  */
 # define WARN_ON_SMP(x)			({0;})
-#endif
 
 #endif /* __ASSEMBLY__ */
 

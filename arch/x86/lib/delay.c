@@ -23,10 +23,6 @@
 #include <asm/timer.h>
 #include <asm/mwait.h>
 
-#ifdef CONFIG_SMP
-# include <asm/smp.h>
-#endif
-
 /* simple loop based delay: */
 static void delay_loop(unsigned long loops)
 {

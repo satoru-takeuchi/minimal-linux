@@ -95,11 +95,7 @@ extern void wb_writeout_inc(struct bdi_writeback *wb);
  */
 static inline unsigned long wb_stat_error(void)
 {
-#ifdef CONFIG_SMP
-	return nr_cpu_ids * WB_STAT_BATCH;
-#else
 	return 1;
-#endif
 }
 
 int bdi_set_min_ratio(struct backing_dev_info *bdi, unsigned int min_ratio);

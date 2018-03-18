@@ -4728,69 +4728,6 @@ int workqueue_offline_cpu(unsigned int cpu)
 	return 0;
 }
 
-#ifdef CONFIG_SMP
-
-struct work_for_cpu {
-	struct work_struct work;
-	long (*fn)(void *);
-	void *arg;
-	long ret;
-};
-
-static void work_for_cpu_fn(struct work_struct *work)
-{
-	struct work_for_cpu *wfc = container_of(work, struct work_for_cpu, work);
-
-	wfc->ret = wfc->fn(wfc->arg);
-}
-
-/**
- * work_on_cpu - run a function in thread context on a particular cpu
- * @cpu: the cpu to run on
- * @fn: the function to run
- * @arg: the function arg
- *
- * It is up to the caller to ensure that the cpu doesn't go offline.
- * The caller must not hold any locks which would prevent @fn from completing.
- *
- * Return: The value @fn returns.
- */
-long work_on_cpu(int cpu, long (*fn)(void *), void *arg)
-{
-	struct work_for_cpu wfc = { .fn = fn, .arg = arg };
-
-	INIT_WORK_ONSTACK(&wfc.work, work_for_cpu_fn);
-	schedule_work_on(cpu, &wfc.work);
-	flush_work(&wfc.work);
-	destroy_work_on_stack(&wfc.work);
-	return wfc.ret;
-}
-EXPORT_SYMBOL_GPL(work_on_cpu);
-
-/**
- * work_on_cpu_safe - run a function in thread context on a particular cpu
- * @cpu: the cpu to run on
- * @fn:  the function to run
- * @arg: the function argument
- *
- * Disables CPU hotplug and calls work_on_cpu(). The caller must not hold
- * any locks which would prevent @fn from completing.
- *
- * Return: The value @fn returns.
- */
-long work_on_cpu_safe(int cpu, long (*fn)(void *), void *arg)
-{
-	long ret = -ENODEV;
-
-	get_online_cpus();
-	if (cpu_online(cpu))
-		ret = work_on_cpu(cpu, fn, arg);
-	put_online_cpus();
-	return ret;
-}
-EXPORT_SYMBOL_GPL(work_on_cpu_safe);
-#endif /* CONFIG_SMP */
-
 #ifdef CONFIG_FREEZER
 
 /**

@@ -55,85 +55,6 @@ void on_each_cpu_cond(bool (*cond_func)(int cpu, void *info),
 
 int smp_call_function_single_async(int cpu, call_single_data_t *csd);
 
-#ifdef CONFIG_SMP
-
-#include <linux/preempt.h>
-#include <linux/kernel.h>
-#include <linux/compiler.h>
-#include <linux/thread_info.h>
-#include <asm/smp.h>
-
-/*
- * main cross-CPU interfaces, handles INIT, TLB flush, STOP, etc.
- * (defined in asm header):
- */
-
-/*
- * stops all CPUs but the current one:
- */
-extern void smp_send_stop(void);
-
-/*
- * sends a 'reschedule' event to another CPU:
- */
-extern void smp_send_reschedule(int cpu);
-
-
-/*
- * Prepare machine for booting other CPUs.
- */
-extern void smp_prepare_cpus(unsigned int max_cpus);
-
-/*
- * Bring a CPU up
- */
-extern int __cpu_up(unsigned int cpunum, struct task_struct *tidle);
-
-/*
- * Final polishing of CPUs
- */
-extern void smp_cpus_done(unsigned int max_cpus);
-
-/*
- * Call a function on all other processors
- */
-int smp_call_function(smp_call_func_t func, void *info, int wait);
-void smp_call_function_many(const struct cpumask *mask,
-			    smp_call_func_t func, void *info, bool wait);
-
-int smp_call_function_any(const struct cpumask *mask,
-			  smp_call_func_t func, void *info, int wait);
-
-void kick_all_cpus_sync(void);
-void wake_up_all_idle_cpus(void);
-
-/*
- * Generic and arch helpers
- */
-void __init call_function_init(void);
-void generic_smp_call_function_single_interrupt(void);
-#define generic_smp_call_function_interrupt \
-	generic_smp_call_function_single_interrupt
-
-/*
- * Mark the boot cpu "online" so that it can call console drivers in
- * printk() and can access its per-cpu storage.
- */
-void smp_prepare_boot_cpu(void);
-
-extern unsigned int setup_max_cpus;
-extern void __init setup_nr_cpu_ids(void);
-extern void __init smp_init(void);
-
-extern int __boot_cpu_id;
-
-static inline int get_boot_cpu_id(void)
-{
-	return __boot_cpu_id;
-}
-
-#else /* !SMP */
-
 static inline void smp_send_stop(void) { }
 
 /*
@@ -174,8 +95,6 @@ static inline int get_boot_cpu_id(void)
 {
 	return 0;
 }
-
-#endif /* !SMP */
 
 /*
  * smp_processor_id(): get the current CPU ID.

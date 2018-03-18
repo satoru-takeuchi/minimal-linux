@@ -657,9 +657,6 @@ unsigned int init_intel_cacheinfo(struct cpuinfo_x86 *c)
 	unsigned int new_l1d = 0, new_l1i = 0; /* Cache sizes from cpuid(4) */
 	unsigned int new_l2 = 0, new_l3 = 0, i; /* Cache sizes from cpuid(4) */
 	unsigned int l2_id = 0, l3_id = 0, num_threads_sharing, index_msb;
-#ifdef CONFIG_SMP
-	unsigned int cpu = c->cpu_index;
-#endif
 
 	if (c->cpuid_level > 3) {
 		static int is_initialized;
@@ -776,29 +773,11 @@ unsigned int init_intel_cacheinfo(struct cpuinfo_x86 *c)
 
 	if (new_l2) {
 		l2 = new_l2;
-#ifdef CONFIG_SMP
-		per_cpu(cpu_llc_id, cpu) = l2_id;
-#endif
 	}
 
 	if (new_l3) {
 		l3 = new_l3;
-#ifdef CONFIG_SMP
-		per_cpu(cpu_llc_id, cpu) = l3_id;
-#endif
 	}
-
-#ifdef CONFIG_SMP
-	/*
-	 * If cpu_llc_id is not yet set, this means cpuid_level < 4 which in
-	 * turns means that the only possibility is SMT (as indicated in
-	 * cpuid1). Since cpuid2 doesn't specify shared caches, and we know
-	 * that SMT shares all caches, we can unconditionally set cpu_llc_id to
-	 * c->phys_proc_id.
-	 */
-	if (per_cpu(cpu_llc_id, cpu) == BAD_APICID)
-		per_cpu(cpu_llc_id, cpu) = c->phys_proc_id;
-#endif
 
 	c->x86_cache_size = l3 ? l3 : (l2 ? l2 : (l1i+l1d));
 

@@ -530,13 +530,7 @@ static inline void mapping_allow_writable(struct address_space *mapping)
 /*
  * Use sequence counter to get consistent i_size on 32-bit processors.
  */
-#if BITS_PER_LONG==32 && defined(CONFIG_SMP)
-#include <linux/seqlock.h>
-#define __NEED_I_SIZE_ORDERED
-#define i_size_ordered_init(inode) seqcount_init(&inode->i_size_seqcount)
-#else
 #define i_size_ordered_init(inode) do { } while (0)
-#endif
 
 struct posix_acl;
 #define ACL_NOT_CACHED ((void *)(-1))
@@ -763,16 +757,7 @@ void unlock_two_nondirectories(struct inode *, struct inode*);
  */
 static inline loff_t i_size_read(const struct inode *inode)
 {
-#if BITS_PER_LONG==32 && defined(CONFIG_SMP)
-	loff_t i_size;
-	unsigned int seq;
-
-	do {
-		seq = read_seqcount_begin(&inode->i_size_seqcount);
-		i_size = inode->i_size;
-	} while (read_seqcount_retry(&inode->i_size_seqcount, seq));
-	return i_size;
-#elif BITS_PER_LONG==32 && defined(CONFIG_PREEMPT)
+#if BITS_PER_LONG==32 && defined(CONFIG_PREEMPT)
 	loff_t i_size;
 
 	preempt_disable();
@@ -791,13 +776,7 @@ static inline loff_t i_size_read(const struct inode *inode)
  */
 static inline void i_size_write(struct inode *inode, loff_t i_size)
 {
-#if BITS_PER_LONG==32 && defined(CONFIG_SMP)
-	preempt_disable();
-	write_seqcount_begin(&inode->i_size_seqcount);
-	inode->i_size = i_size;
-	write_seqcount_end(&inode->i_size_seqcount);
-	preempt_enable();
-#elif BITS_PER_LONG==32 && defined(CONFIG_PREEMPT)
+#if BITS_PER_LONG==32 && defined(CONFIG_PREEMPT)
 	preempt_disable();
 	inode->i_size = i_size;
 	preempt_enable();

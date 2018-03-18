@@ -122,11 +122,7 @@ struct hd_struct {
 #endif
 	unsigned long stamp;
 	atomic_t in_flight[2];
-#ifdef	CONFIG_SMP
-	struct disk_stats __percpu *dkstats;
-#else
 	struct disk_stats dkstats;
-#endif
 	struct percpu_ref ref;
 	struct rcu_head rcu_head;
 };
@@ -289,45 +285,6 @@ extern struct hd_struct *disk_map_sector_rcu(struct gendisk *disk,
  * part_stat_{add|set_all}() and {init|free}_part_stats are for
  * internal use only.
  */
-#ifdef	CONFIG_SMP
-#define part_stat_lock()	({ rcu_read_lock(); get_cpu(); })
-#define part_stat_unlock()	do { put_cpu(); rcu_read_unlock(); } while (0)
-
-#define __part_stat_add(cpu, part, field, addnd)			\
-	(per_cpu_ptr((part)->dkstats, (cpu))->field += (addnd))
-
-#define part_stat_read(part, field)					\
-({									\
-	typeof((part)->dkstats->field) res = 0;				\
-	unsigned int _cpu;						\
-	for_each_possible_cpu(_cpu)					\
-		res += per_cpu_ptr((part)->dkstats, _cpu)->field;	\
-	res;								\
-})
-
-static inline void part_stat_set_all(struct hd_struct *part, int value)
-{
-	int i;
-
-	for_each_possible_cpu(i)
-		memset(per_cpu_ptr(part->dkstats, i), value,
-				sizeof(struct disk_stats));
-}
-
-static inline int init_part_stats(struct hd_struct *part)
-{
-	part->dkstats = alloc_percpu(struct disk_stats);
-	if (!part->dkstats)
-		return 0;
-	return 1;
-}
-
-static inline void free_part_stats(struct hd_struct *part)
-{
-	free_percpu(part->dkstats);
-}
-
-#else /* !CONFIG_SMP */
 #define part_stat_lock()	({ rcu_read_lock(); 0; })
 #define part_stat_unlock()	rcu_read_unlock()
 
@@ -349,8 +306,6 @@ static inline int init_part_stats(struct hd_struct *part)
 static inline void free_part_stats(struct hd_struct *part)
 {
 }
-
-#endif /* CONFIG_SMP */
 
 #define part_stat_add(cpu, part, field, addnd)	do {			\
 	__part_stat_add((cpu), (part), field, addnd);			\
@@ -682,15 +637,7 @@ static inline void hd_free_part(struct hd_struct *part)
  */
 static inline sector_t part_nr_sects_read(struct hd_struct *part)
 {
-#if BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_SMP)
-	sector_t nr_sects;
-	unsigned seq;
-	do {
-		seq = read_seqcount_begin(&part->nr_sects_seq);
-		nr_sects = part->nr_sects;
-	} while (read_seqcount_retry(&part->nr_sects_seq, seq));
-	return nr_sects;
-#elif BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_PREEMPT)
+#if BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_PREEMPT)
 	sector_t nr_sects;
 
 	preempt_disable();
@@ -709,11 +656,7 @@ static inline sector_t part_nr_sects_read(struct hd_struct *part)
  */
 static inline void part_nr_sects_write(struct hd_struct *part, sector_t size)
 {
-#if BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_SMP)
-	write_seqcount_begin(&part->nr_sects_seq);
-	part->nr_sects = size;
-	write_seqcount_end(&part->nr_sects_seq);
-#elif BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_PREEMPT)
+#if BITS_PER_LONG==32 && defined(CONFIG_LBDAF) && defined(CONFIG_PREEMPT)
 	preempt_disable();
 	part->nr_sects = size;
 	preempt_enable();

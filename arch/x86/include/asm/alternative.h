@@ -30,20 +30,8 @@
  * and size information.  That keeps the table sizes small.
  */
 
-#ifdef CONFIG_SMP
-#define LOCK_PREFIX_HERE \
-		".pushsection .smp_locks,\"a\"\n"	\
-		".balign 4\n"				\
-		".long 671f - .\n" /* offset */		\
-		".popsection\n"				\
-		"671:"
-
-#define LOCK_PREFIX LOCK_PREFIX_HERE "\n\tlock; "
-
-#else /* ! CONFIG_SMP */
 #define LOCK_PREFIX_HERE ""
 #define LOCK_PREFIX ""
-#endif
 
 struct alt_instr {
 	s32 instr_offset;	/* original instruction */
@@ -65,15 +53,6 @@ extern void apply_alternatives(struct alt_instr *start, struct alt_instr *end);
 
 struct module;
 
-#ifdef CONFIG_SMP
-extern void alternatives_smp_module_add(struct module *mod, char *name,
-					void *locks, void *locks_end,
-					void *text, void *text_end);
-extern void alternatives_smp_module_del(struct module *mod);
-extern void alternatives_enable_smp(void);
-extern int alternatives_text_reserved(void *start, void *end);
-extern bool skip_smp_alternatives;
-#else
 static inline void alternatives_smp_module_add(struct module *mod, char *name,
 					       void *locks, void *locks_end,
 					       void *text, void *text_end) {}
@@ -83,7 +62,6 @@ static inline int alternatives_text_reserved(void *start, void *end)
 {
 	return 0;
 }
-#endif	/* CONFIG_SMP */
 
 #define b_replacement(num)	"664"#num
 #define e_replacement(num)	"665"#num

@@ -548,22 +548,11 @@ extern int irq_set_affinity_locked(struct irq_data *data,
 				   const struct cpumask *cpumask, bool force);
 extern int irq_set_vcpu_affinity(unsigned int irq, void *vcpu_info);
 
-#if defined(CONFIG_SMP) && defined(CONFIG_GENERIC_IRQ_MIGRATION)
-extern void irq_migrate_all_off_this_cpu(void);
-extern int irq_affinity_online_cpu(unsigned int cpu);
-#else
 # define irq_affinity_online_cpu	NULL
-#endif
 
-#if defined(CONFIG_SMP) && defined(CONFIG_GENERIC_PENDING_IRQ)
-void irq_move_irq(struct irq_data *data);
-void irq_move_masked_irq(struct irq_data *data);
-void irq_force_complete_move(struct irq_desc *desc);
-#else
 static inline void irq_move_irq(struct irq_data *data) { }
 static inline void irq_move_masked_irq(struct irq_data *data) { }
 static inline void irq_force_complete_move(struct irq_desc *desc) { }
-#endif
 
 extern int no_irq_affinity;
 
@@ -1097,20 +1086,8 @@ static inline struct irq_chip_type *irq_data_get_chip_type(struct irq_data *d)
 
 #define IRQ_MSK(n) (u32)((n) < 32 ? ((1 << (n)) - 1) : UINT_MAX)
 
-#ifdef CONFIG_SMP
-static inline void irq_gc_lock(struct irq_chip_generic *gc)
-{
-	raw_spin_lock(&gc->lock);
-}
-
-static inline void irq_gc_unlock(struct irq_chip_generic *gc)
-{
-	raw_spin_unlock(&gc->lock);
-}
-#else
 static inline void irq_gc_lock(struct irq_chip_generic *gc) { }
 static inline void irq_gc_unlock(struct irq_chip_generic *gc) { }
-#endif
 
 /*
  * The irqsave variants are for usage in non interrupt code. Do not use

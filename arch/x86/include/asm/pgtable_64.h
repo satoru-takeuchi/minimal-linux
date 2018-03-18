@@ -82,28 +82,20 @@ static inline void native_pmd_clear(pmd_t *pmd)
 
 static inline pte_t native_ptep_get_and_clear(pte_t *xp)
 {
-#ifdef CONFIG_SMP
-	return native_make_pte(xchg(&xp->pte, 0));
-#else
 	/* native_local_ptep_get_and_clear,
 	   but duplicated because of cyclic dependency */
 	pte_t ret = *xp;
 	native_pte_clear(NULL, 0, xp);
 	return ret;
-#endif
 }
 
 static inline pmd_t native_pmdp_get_and_clear(pmd_t *xp)
 {
-#ifdef CONFIG_SMP
-	return native_make_pmd(xchg(&xp->pmd, 0));
-#else
 	/* native_local_pmdp_get_and_clear,
 	   but duplicated because of cyclic dependency */
 	pmd_t ret = *xp;
 	native_pmd_clear(xp);
 	return ret;
-#endif
 }
 
 static inline void native_set_pud(pud_t *pudp, pud_t pud)
@@ -118,9 +110,6 @@ static inline void native_pud_clear(pud_t *pud)
 
 static inline pud_t native_pudp_get_and_clear(pud_t *xp)
 {
-#ifdef CONFIG_SMP
-	return native_make_pud(xchg(&xp->pud, 0));
-#else
 	/* native_local_pudp_get_and_clear,
 	 * but duplicated because of cyclic dependency
 	 */
@@ -128,7 +117,6 @@ static inline pud_t native_pudp_get_and_clear(pud_t *xp)
 
 	native_pud_clear(xp);
 	return ret;
-#endif
 }
 
 #ifdef CONFIG_PAGE_TABLE_ISOLATION

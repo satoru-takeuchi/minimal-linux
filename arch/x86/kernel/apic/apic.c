@@ -512,9 +512,6 @@ static int lapic_timer_set_oneshot(struct clock_event_device *evt)
  */
 static void lapic_timer_broadcast(const struct cpumask *mask)
 {
-#ifdef CONFIG_SMP
-	apic->send_IPI_mask(mask, LOCAL_TIMER_VECTOR);
-#endif
 }
 
 
@@ -1268,20 +1265,6 @@ static int __init apic_intr_mode_select(void)
 		}
 		return APIC_VIRTUAL_WIRE;
 	}
-
-#ifdef CONFIG_SMP
-	/* If SMP should be disabled, then really disable it! */
-	if (!setup_max_cpus) {
-		pr_info("APIC: SMP mode deactivated\n");
-		return APIC_SYMMETRIC_IO_NO_ROUTING;
-	}
-
-	if (read_apic_id() != boot_cpu_physical_apicid) {
-		panic("Boot APIC ID in local APIC unexpected (%d vs %d)",
-		     read_apic_id(), boot_cpu_physical_apicid);
-		/* Or can we switch back to PIC here? */
-	}
-#endif
 
 	return APIC_SYMMETRIC_IO;
 }
@@ -2312,7 +2295,7 @@ int generic_processor_info(int apicid, int version)
 	if (apicid > max_physical_apicid)
 		max_physical_apicid = apicid;
 
-#if defined(CONFIG_SMP) || defined(CONFIG_X86_64)
+#if defined(CONFIG_X86_64)
 	early_per_cpu(x86_cpu_to_apicid, cpu) = apicid;
 	early_per_cpu(x86_bios_cpu_apicid, cpu) = apicid;
 #endif

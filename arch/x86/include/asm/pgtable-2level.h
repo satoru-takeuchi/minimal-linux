@@ -46,32 +46,11 @@ static inline void native_pte_clear(struct mm_struct *mm,
 	*xp = native_make_pte(0);
 }
 
-#ifdef CONFIG_SMP
-static inline pte_t native_ptep_get_and_clear(pte_t *xp)
-{
-	return __pte(xchg(&xp->pte_low, 0));
-}
-#else
 #define native_ptep_get_and_clear(xp) native_local_ptep_get_and_clear(xp)
-#endif
 
-#ifdef CONFIG_SMP
-static inline pmd_t native_pmdp_get_and_clear(pmd_t *xp)
-{
-	return __pmd(xchg((pmdval_t *)xp, 0));
-}
-#else
 #define native_pmdp_get_and_clear(xp) native_local_pmdp_get_and_clear(xp)
-#endif
 
-#ifdef CONFIG_SMP
-static inline pud_t native_pudp_get_and_clear(pud_t *xp)
-{
-	return __pud(xchg((pudval_t *)xp, 0));
-}
-#else
 #define native_pudp_get_and_clear(xp) native_local_pudp_get_and_clear(xp)
-#endif
 
 /* Bit manipulation helper on pte/pgoff entry */
 static inline unsigned long pte_bitop(unsigned long value, unsigned int rightshift,

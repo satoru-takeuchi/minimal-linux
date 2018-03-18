@@ -173,29 +173,6 @@ extern struct list_head vmap_area_list;
 extern __init void vm_area_add_early(struct vm_struct *vm);
 extern __init void vm_area_register_early(struct vm_struct *vm, size_t align);
 
-#ifdef CONFIG_SMP
-# ifdef CONFIG_MMU
-struct vm_struct **pcpu_get_vm_areas(const unsigned long *offsets,
-				     const size_t *sizes, int nr_vms,
-				     size_t align);
-
-void pcpu_free_vm_areas(struct vm_struct **vms, int nr_vms);
-# else
-static inline struct vm_struct **
-pcpu_get_vm_areas(const unsigned long *offsets,
-		const size_t *sizes, int nr_vms,
-		size_t align)
-{
-	return NULL;
-}
-
-static inline void
-pcpu_free_vm_areas(struct vm_struct **vms, int nr_vms)
-{
-}
-# endif
-#endif
-
 #ifdef CONFIG_MMU
 #define VMALLOC_TOTAL (VMALLOC_END - VMALLOC_START)
 #else

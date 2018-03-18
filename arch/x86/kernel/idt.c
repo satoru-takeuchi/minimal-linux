@@ -109,14 +109,6 @@ static const __initconst struct idt_data def_idts[] = {
  * The APIC and SMP idt entries
  */
 static const __initconst struct idt_data apic_idts[] = {
-#ifdef CONFIG_SMP
-	INTG(RESCHEDULE_VECTOR,		reschedule_interrupt),
-	INTG(CALL_FUNCTION_VECTOR,	call_function_interrupt),
-	INTG(CALL_FUNCTION_SINGLE_VECTOR, call_function_single_interrupt),
-	INTG(IRQ_MOVE_CLEANUP_VECTOR,	irq_move_cleanup_interrupt),
-	INTG(REBOOT_VECTOR,		reboot_interrupt),
-#endif
-
 #ifdef CONFIG_X86_THERMAL_VECTOR
 	INTG(THERMAL_APIC_VECTOR,	thermal_interrupt),
 #endif

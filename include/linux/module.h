@@ -421,12 +421,6 @@ struct module {
 	   keeping pointers to this stuff */
 	char *args;
 
-#ifdef CONFIG_SMP
-	/* Per-cpu data. */
-	void __percpu *percpu;
-	unsigned int percpu_size;
-#endif
-
 #ifdef CONFIG_TRACEPOINTS
 	unsigned int num_tracepoints;
 	struct tracepoint * const *tracepoints_ptrs;

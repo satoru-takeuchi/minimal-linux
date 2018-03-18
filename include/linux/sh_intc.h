@@ -50,17 +50,11 @@ struct intc_mask_reg {
 #ifdef CONFIG_INTC_BALANCING
 	unsigned long dist_reg;
 #endif
-#ifdef CONFIG_SMP
-	unsigned long smp;
-#endif
 };
 
 struct intc_prio_reg {
 	unsigned long set_reg, clr_reg, reg_width, field_width;
 	intc_enum enum_ids[16];
-#ifdef CONFIG_SMP
-	unsigned long smp;
-#endif
 };
 
 struct intc_sense_reg {
@@ -74,11 +68,7 @@ struct intc_sense_reg {
 #define INTC_SMP_BALANCING(reg)
 #endif
 
-#ifdef CONFIG_SMP
-#define INTC_SMP(stride, nr)	.smp = (stride) | ((nr) << 8)
-#else
 #define INTC_SMP(stride, nr)
-#endif
 
 struct intc_hw_desc {
 	struct intc_vect *vectors;

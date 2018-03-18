@@ -166,20 +166,12 @@ static inline void node_page_state_add(long x, struct pglist_data *pgdat,
 static inline unsigned long global_zone_page_state(enum zone_stat_item item)
 {
 	long x = atomic_long_read(&vm_zone_stat[item]);
-#ifdef CONFIG_SMP
-	if (x < 0)
-		x = 0;
-#endif
 	return x;
 }
 
 static inline unsigned long global_node_page_state(enum node_stat_item item)
 {
 	long x = atomic_long_read(&vm_node_stat[item]);
-#ifdef CONFIG_SMP
-	if (x < 0)
-		x = 0;
-#endif
 	return x;
 }
 
@@ -187,10 +179,6 @@ static inline unsigned long zone_page_state(struct zone *zone,
 					enum zone_stat_item item)
 {
 	long x = atomic_long_read(&zone->vm_stat[item]);
-#ifdef CONFIG_SMP
-	if (x < 0)
-		x = 0;
-#endif
 	return x;
 }
 
@@ -205,14 +193,6 @@ static inline unsigned long zone_page_state_snapshot(struct zone *zone,
 {
 	long x = atomic_long_read(&zone->vm_stat[item]);
 
-#ifdef CONFIG_SMP
-	int cpu;
-	for_each_online_cpu(cpu)
-		x += per_cpu_ptr(zone->pageset, cpu)->vm_stat_diff[item];
-
-	if (x < 0)
-		x = 0;
-#endif
 	return x;
 }
 
@@ -221,14 +201,6 @@ static inline unsigned long node_page_state_snapshot(pg_data_t *pgdat,
 {
 	long x = atomic_long_read(&pgdat->vm_stat[item]);
 
-#ifdef CONFIG_SMP
-	int cpu;
-	for_each_online_cpu(cpu)
-		x += per_cpu_ptr(pgdat->per_cpu_nodestats, cpu)->vm_node_stat_diff[item];
-
-	if (x < 0)
-		x = 0;
-#endif
 	return x;
 }
 
@@ -249,46 +221,6 @@ extern unsigned long node_page_state(struct pglist_data *pgdat,
 #define sub_zone_page_state(__z, __i, __d) mod_zone_page_state(__z, __i, -(__d))
 #define add_node_page_state(__p, __i, __d) mod_node_page_state(__p, __i, __d)
 #define sub_node_page_state(__p, __i, __d) mod_node_page_state(__p, __i, -(__d))
-
-#ifdef CONFIG_SMP
-void __mod_zone_page_state(struct zone *, enum zone_stat_item item, long);
-void __inc_zone_page_state(struct page *, enum zone_stat_item);
-void __dec_zone_page_state(struct page *, enum zone_stat_item);
-
-void __mod_node_page_state(struct pglist_data *, enum node_stat_item item, long);
-void __inc_node_page_state(struct page *, enum node_stat_item);
-void __dec_node_page_state(struct page *, enum node_stat_item);
-
-void mod_zone_page_state(struct zone *, enum zone_stat_item, long);
-void inc_zone_page_state(struct page *, enum zone_stat_item);
-void dec_zone_page_state(struct page *, enum zone_stat_item);
-
-void mod_node_page_state(struct pglist_data *, enum node_stat_item, long);
-void inc_node_page_state(struct page *, enum node_stat_item);
-void dec_node_page_state(struct page *, enum node_stat_item);
-
-extern void inc_node_state(struct pglist_data *, enum node_stat_item);
-extern void __inc_zone_state(struct zone *, enum zone_stat_item);
-extern void __inc_node_state(struct pglist_data *, enum node_stat_item);
-extern void dec_zone_state(struct zone *, enum zone_stat_item);
-extern void __dec_zone_state(struct zone *, enum zone_stat_item);
-extern void __dec_node_state(struct pglist_data *, enum node_stat_item);
-
-void quiet_vmstat(void);
-void cpu_vm_stats_fold(int cpu);
-void refresh_zone_stat_thresholds(void);
-
-struct ctl_table;
-int vmstat_refresh(struct ctl_table *, int write,
-		   void __user *buffer, size_t *lenp, loff_t *ppos);
-
-void drain_zonestat(struct zone *zone, struct per_cpu_pageset *);
-
-int calculate_pressure_threshold(struct zone *zone);
-int calculate_normal_threshold(struct zone *zone);
-void set_pgdat_percpu_threshold(pg_data_t *pgdat,
-				int (*calculate_pressure)(struct zone *));
-#else /* CONFIG_SMP */
 
 /*
  * We do not maintain differentials in a single processor configuration.
@@ -380,7 +312,6 @@ static inline void quiet_vmstat(void) { }
 
 static inline void drain_zonestat(struct zone *zone,
 			struct per_cpu_pageset *pset) { }
-#endif		/* CONFIG_SMP */
 
 static inline void __mod_zone_freepage_state(struct zone *zone, int nr_pages,
 					     int migratetype)

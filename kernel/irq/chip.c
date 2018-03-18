@@ -191,49 +191,11 @@ enum {
 	IRQ_STARTUP_ABORT,
 };
 
-#ifdef CONFIG_SMP
-static int
-__irq_startup_managed(struct irq_desc *desc, struct cpumask *aff, bool force)
-{
-	struct irq_data *d = irq_desc_get_irq_data(desc);
-
-	if (!irqd_affinity_is_managed(d))
-		return IRQ_STARTUP_NORMAL;
-
-	irqd_clr_managed_shutdown(d);
-
-	if (cpumask_any_and(aff, cpu_online_mask) >= nr_cpu_ids) {
-		/*
-		 * Catch code which fiddles with enable_irq() on a managed
-		 * and potentially shutdown IRQ. Chained interrupt
-		 * installment or irq auto probing should not happen on
-		 * managed irqs either.
-		 */
-		if (WARN_ON_ONCE(force))
-			return IRQ_STARTUP_ABORT;
-		/*
-		 * The interrupt was requested, but there is no online CPU
-		 * in it's affinity mask. Put it into managed shutdown
-		 * state and let the cpu hotplug mechanism start it up once
-		 * a CPU in the mask becomes available.
-		 */
-		return IRQ_STARTUP_ABORT;
-	}
-	/*
-	 * Managed interrupts have reserved resources, so this should not
-	 * happen.
-	 */
-	if (WARN_ON(irq_domain_activate_irq(d, false)))
-		return IRQ_STARTUP_ABORT;
-	return IRQ_STARTUP_MANAGED;
-}
-#else
 static __always_inline int
 __irq_startup_managed(struct irq_desc *desc, struct cpumask *aff, bool force)
 {
 	return IRQ_STARTUP_NORMAL;
 }
-#endif
 
 static int __irq_startup(struct irq_desc *desc)
 {

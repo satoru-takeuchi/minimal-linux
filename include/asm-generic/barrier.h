@@ -70,26 +70,6 @@
 #define __smp_read_barrier_depends()	read_barrier_depends()
 #endif
 
-#ifdef CONFIG_SMP
-
-#ifndef smp_mb
-#define smp_mb()	__smp_mb()
-#endif
-
-#ifndef smp_rmb
-#define smp_rmb()	__smp_rmb()
-#endif
-
-#ifndef smp_wmb
-#define smp_wmb()	__smp_wmb()
-#endif
-
-#ifndef smp_read_barrier_depends
-#define smp_read_barrier_depends()	__smp_read_barrier_depends()
-#endif
-
-#else	/* !CONFIG_SMP */
-
 #ifndef smp_mb
 #define smp_mb()	barrier()
 #endif
@@ -105,8 +85,6 @@
 #ifndef smp_read_barrier_depends
 #define smp_read_barrier_depends()	do { } while (0)
 #endif
-
-#endif	/* CONFIG_SMP */
 
 #ifndef __smp_store_mb
 #define __smp_store_mb(var, value)  do { WRITE_ONCE(var, value); __smp_mb(); } while (0)
@@ -139,30 +117,6 @@ do {									\
 })
 #endif
 
-#ifdef CONFIG_SMP
-
-#ifndef smp_store_mb
-#define smp_store_mb(var, value)  __smp_store_mb(var, value)
-#endif
-
-#ifndef smp_mb__before_atomic
-#define smp_mb__before_atomic()	__smp_mb__before_atomic()
-#endif
-
-#ifndef smp_mb__after_atomic
-#define smp_mb__after_atomic()	__smp_mb__after_atomic()
-#endif
-
-#ifndef smp_store_release
-#define smp_store_release(p, v) __smp_store_release(p, v)
-#endif
-
-#ifndef smp_load_acquire
-#define smp_load_acquire(p) __smp_load_acquire(p)
-#endif
-
-#else	/* !CONFIG_SMP */
-
 #ifndef smp_store_mb
 #define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); barrier(); } while (0)
 #endif
@@ -193,8 +147,6 @@ do {									\
 	___p1;								\
 })
 #endif
-
-#endif	/* CONFIG_SMP */
 
 /* Barriers for virtual machine guests when talking to an SMP host */
 #define virt_mb() __smp_mb()

@@ -660,36 +660,6 @@ static inline void __set_fixmap(unsigned /* enum fixed_addresses */ idx,
 	pv_mmu_ops.set_fixmap(idx, phys, flags);
 }
 
-#if defined(CONFIG_SMP) && defined(CONFIG_PARAVIRT_SPINLOCKS)
-
-static __always_inline void pv_queued_spin_lock_slowpath(struct qspinlock *lock,
-							u32 val)
-{
-	PVOP_VCALL2(pv_lock_ops.queued_spin_lock_slowpath, lock, val);
-}
-
-static __always_inline void pv_queued_spin_unlock(struct qspinlock *lock)
-{
-	PVOP_VCALLEE1(pv_lock_ops.queued_spin_unlock, lock);
-}
-
-static __always_inline void pv_wait(u8 *ptr, u8 val)
-{
-	PVOP_VCALL2(pv_lock_ops.wait, ptr, val);
-}
-
-static __always_inline void pv_kick(int cpu)
-{
-	PVOP_VCALL1(pv_lock_ops.kick, cpu);
-}
-
-static __always_inline bool pv_vcpu_is_preempted(long cpu)
-{
-	return PVOP_CALLEE1(bool, pv_lock_ops.vcpu_is_preempted, cpu);
-}
-
-#endif /* SMP && PARAVIRT_SPINLOCKS */
-
 #ifdef CONFIG_X86_32
 #define PV_SAVE_REGS "pushl %ecx; pushl %edx;"
 #define PV_RESTORE_REGS "popl %edx; popl %ecx;"

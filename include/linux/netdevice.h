@@ -515,11 +515,7 @@ static inline void napi_enable(struct napi_struct *n)
  */
 static inline void napi_synchronize(const struct napi_struct *n)
 {
-	if (IS_ENABLED(CONFIG_SMP))
-		while (test_bit(NAPI_STATE_SCHED, &n->state))
-			msleep(1);
-	else
-		barrier();
+	barrier();
 }
 
 enum netdev_queue_state_t {

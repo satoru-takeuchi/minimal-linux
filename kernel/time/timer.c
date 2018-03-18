@@ -210,46 +210,6 @@ struct timer_base {
 
 static DEFINE_PER_CPU(struct timer_base, timer_bases[NR_BASES]);
 
-#if defined(CONFIG_SMP) && defined(CONFIG_NO_HZ_COMMON)
-unsigned int sysctl_timer_migration = 1;
-
-void timers_update_migration(bool update_nohz)
-{
-	bool on = sysctl_timer_migration && tick_nohz_active;
-	unsigned int cpu;
-
-	/* Avoid the loop, if nothing to update */
-	if (this_cpu_read(timer_bases[BASE_STD].migration_enabled) == on)
-		return;
-
-	for_each_possible_cpu(cpu) {
-		per_cpu(timer_bases[BASE_STD].migration_enabled, cpu) = on;
-		per_cpu(timer_bases[BASE_DEF].migration_enabled, cpu) = on;
-		per_cpu(hrtimer_bases.migration_enabled, cpu) = on;
-		if (!update_nohz)
-			continue;
-		per_cpu(timer_bases[BASE_STD].nohz_active, cpu) = true;
-		per_cpu(timer_bases[BASE_DEF].nohz_active, cpu) = true;
-		per_cpu(hrtimer_bases.nohz_active, cpu) = true;
-	}
-}
-
-int timer_migration_handler(struct ctl_table *table, int write,
-			    void __user *buffer, size_t *lenp,
-			    loff_t *ppos)
-{
-	static DEFINE_MUTEX(mutex);
-	int ret;
-
-	mutex_lock(&mutex);
-	ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
-	if (!ret && write)
-		timers_update_migration(false);
-	mutex_unlock(&mutex);
-	return ret;
-}
-#endif
-
 static unsigned long round_jiffies_common(unsigned long j, int cpu,
 		bool force_up)
 {
@@ -853,13 +813,7 @@ static inline struct timer_base *get_timer_base(u32 tflags)
 static inline struct timer_base *
 get_target_base(struct timer_base *base, unsigned tflags)
 {
-#ifdef CONFIG_SMP
-	if ((tflags & TIMER_PINNED) || !base->migration_enabled)
-		return get_timer_this_cpu_base(tflags);
-	return get_timer_cpu_base(tflags, get_nohz_timer_target());
-#else
 	return get_timer_this_cpu_base(tflags);
-#endif
 }
 
 static inline void forward_timer_base(struct timer_base *base)
@@ -1225,71 +1179,7 @@ int try_to_del_timer_sync(struct timer_list *timer)
 }
 EXPORT_SYMBOL(try_to_del_timer_sync);
 
-#ifdef CONFIG_SMP
-/**
- * del_timer_sync - deactivate a timer and wait for the handler to finish.
- * @timer: the timer to be deactivated
- *
- * This function only differs from del_timer() on SMP: besides deactivating
- * the timer it also makes sure the handler has finished executing on other
- * CPUs.
- *
- * Synchronization rules: Callers must prevent restarting of the timer,
- * otherwise this function is meaningless. It must not be called from
- * interrupt contexts unless the timer is an irqsafe one. The caller must
- * not hold locks which would prevent completion of the timer's
- * handler. The timer's handler must not call add_timer_on(). Upon exit the
- * timer is not queued and the handler is not running on any CPU.
- *
- * Note: For !irqsafe timers, you must not hold locks that are held in
- *   interrupt context while calling this function. Even if the lock has
- *   nothing to do with the timer in question.  Here's why:
- *
- *    CPU0                             CPU1
- *    ----                             ----
- *                                   <SOFTIRQ>
- *                                   call_timer_fn();
- *                                     base->running_timer = mytimer;
- *  spin_lock_irq(somelock);
- *                                     <IRQ>
- *                                        spin_lock(somelock);
- *  del_timer_sync(mytimer);
- *   while (base->running_timer == mytimer);
- *
- * Now del_timer_sync() will never return and never release somelock.
- * The interrupt on the other CPU is waiting to grab somelock but
- * it has interrupted the softirq that CPU0 is waiting to finish.
- *
- * The function returns whether it has deactivated a pending timer or not.
- */
-int del_timer_sync(struct timer_list *timer)
-{
-#ifdef CONFIG_LOCKDEP
-	unsigned long flags;
-
-	/*
-	 * If lockdep gives a backtrace here, please reference
-	 * the synchronization rules above.
-	 */
-	local_irq_save(flags);
-	lock_map_acquire(&timer->lockdep_map);
-	lock_map_release(&timer->lockdep_map);
-	local_irq_restore(flags);
-#endif
-	/*
-	 * don't use it in hardirq context, because it
-	 * could lead to deadlock.
-	 */
-	WARN_ON(in_irq() && !(timer->flags & TIMER_IRQSAFE));
-	for (;;) {
-		int ret = try_to_del_timer_sync(timer);
-		if (ret >= 0)
-			return ret;
-		cpu_relax();
-	}
-}
 EXPORT_SYMBOL(del_timer_sync);
-#endif
 
 static void call_timer_fn(struct timer_list *timer, void (*fn)(struct timer_list *))
 {

@@ -40,12 +40,8 @@ struct mount {
 		struct rcu_head mnt_rcu;
 		struct llist_node mnt_llist;
 	};
-#ifdef CONFIG_SMP
-	struct mnt_pcp __percpu *mnt_pcp;
-#else
 	int mnt_count;
 	int mnt_writers;
-#endif
 	struct list_head mnt_mounts;	/* list of children, anchored here */
 	struct list_head mnt_child;	/* and going through their mnt_child */
 	struct list_head mnt_instance;	/* mount instance on sb->s_mounts */

@@ -399,16 +399,6 @@ struct sched_entity {
 	/* rq "owned" by this entity/group: */
 	struct cfs_rq			*my_q;
 #endif
-
-#ifdef CONFIG_SMP
-	/*
-	 * Per entity load average tracking.
-	 *
-	 * Put into separate cache line so it does not
-	 * collide with read-mostly values above.
-	 */
-	struct sched_avg		avg ____cacheline_aligned_in_smp;
-#endif
 };
 
 struct sched_rt_entity {
@@ -540,19 +530,6 @@ struct task_struct {
 	unsigned int			flags;
 	unsigned int			ptrace;
 
-#ifdef CONFIG_SMP
-	struct llist_node		wake_entry;
-	int				on_cpu;
-#ifdef CONFIG_THREAD_INFO_IN_TASK
-	/* Current CPU: */
-	unsigned int			cpu;
-#endif
-	unsigned int			wakee_flips;
-	unsigned long			wakee_flip_decay_ts;
-	struct task_struct		*last_wakee;
-
-	int				wake_cpu;
-#endif
 	int				on_rq;
 
 	int				prio;
@@ -599,10 +576,6 @@ struct task_struct {
 	struct sched_info		sched_info;
 
 	struct list_head		tasks;
-#ifdef CONFIG_SMP
-	struct plist_node		pushable_tasks;
-	struct rb_node			pushable_dl_tasks;
-#endif
 
 	struct mm_struct		*mm;
 	struct mm_struct		*active_mm;
@@ -1341,12 +1314,7 @@ extern struct pid *cad_pid;
 
 static inline bool is_percpu_thread(void)
 {
-#ifdef CONFIG_SMP
-	return (current->flags & PF_NO_SETAFFINITY) &&
-		(current->nr_cpus_allowed  == 1);
-#else
 	return true;
-#endif
 }
 
 /* Per-process atomic flags. */
@@ -1387,10 +1355,6 @@ current_restore_flags(unsigned long orig_flags, unsigned long flags)
 
 extern int cpuset_cpumask_can_shrink(const struct cpumask *cur, const struct cpumask *trial);
 extern int task_can_attach(struct task_struct *p, const struct cpumask *cs_cpus_allowed);
-#ifdef CONFIG_SMP
-extern void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask);
-extern int set_cpus_allowed_ptr(struct task_struct *p, const struct cpumask *new_mask);
-#else
 static inline void do_set_cpus_allowed(struct task_struct *p, const struct cpumask *new_mask)
 {
 }
@@ -1400,7 +1364,6 @@ static inline int set_cpus_allowed_ptr(struct task_struct *p, const struct cpuma
 		return -EINVAL;
 	return 0;
 }
-#endif
 
 #ifndef cpu_relax_yield
 #define cpu_relax_yield() cpu_relax()
@@ -1479,11 +1442,7 @@ extern int wake_up_state(struct task_struct *tsk, unsigned int state);
 extern int wake_up_process(struct task_struct *tsk);
 extern void wake_up_new_task(struct task_struct *tsk);
 
-#ifdef CONFIG_SMP
-extern void kick_process(struct task_struct *tsk);
-#else
 static inline void kick_process(struct task_struct *tsk) { }
-#endif
 
 extern void __set_task_comm(struct task_struct *tsk, const char *from, bool exec);
 
@@ -1498,16 +1457,11 @@ extern char *__get_task_comm(char *to, size_t len, struct task_struct *tsk);
 	__get_task_comm(buf, sizeof(buf), tsk);		\
 })
 
-#ifdef CONFIG_SMP
-void scheduler_ipi(void);
-extern unsigned long wait_task_inactive(struct task_struct *, long match_state);
-#else
 static inline void scheduler_ipi(void) { }
 static inline unsigned long wait_task_inactive(struct task_struct *p, long match_state)
 {
 	return 1;
 }
-#endif
 
 /*
  * Set thread flags in other task's structures.
@@ -1616,21 +1570,6 @@ static __always_inline bool need_resched(void)
 /*
  * Wrappers for p->thread_info->cpu access. No-op on UP.
  */
-#ifdef CONFIG_SMP
-
-static inline unsigned int task_cpu(const struct task_struct *p)
-{
-#ifdef CONFIG_THREAD_INFO_IN_TASK
-	return p->cpu;
-#else
-	return task_thread_info(p)->cpu;
-#endif
-}
-
-extern void set_task_cpu(struct task_struct *p, unsigned int cpu);
-
-#else
-
 static inline unsigned int task_cpu(const struct task_struct *p)
 {
 	return 0;
@@ -1639,8 +1578,6 @@ static inline unsigned int task_cpu(const struct task_struct *p)
 static inline void set_task_cpu(struct task_struct *p, unsigned int cpu)
 {
 }
-
-#endif /* CONFIG_SMP */
 
 /*
  * In order to reduce various lock holder preemption latencies provide an

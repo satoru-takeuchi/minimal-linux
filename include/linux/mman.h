@@ -55,11 +55,7 @@ extern int sysctl_overcommit_ratio;
 extern unsigned long sysctl_overcommit_kbytes;
 extern struct percpu_counter vm_committed_as;
 
-#ifdef CONFIG_SMP
-extern s32 vm_committed_as_batch;
-#else
 #define vm_committed_as_batch 0
-#endif
 
 unsigned long vm_memory_committed(void);
 

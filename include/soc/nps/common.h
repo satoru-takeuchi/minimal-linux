@@ -33,10 +33,6 @@
 #ifndef SOC_NPS_COMMON_H
 #define SOC_NPS_COMMON_H
 
-#ifdef CONFIG_SMP
-#define NPS_IPI_IRQ					5
-#endif
-
 #define NPS_HOST_REG_BASE			0xF6000000
 
 #define NPS_MSU_BLKID				0x018

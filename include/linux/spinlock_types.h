@@ -9,11 +9,7 @@
  * Released under the General Public License (GPL).
  */
 
-#if defined(CONFIG_SMP)
-# include <asm/spinlock_types.h>
-#else
 # include <linux/spinlock_types_up.h>
-#endif
 
 #include <linux/lockdep.h>
 

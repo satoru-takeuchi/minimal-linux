@@ -106,14 +106,7 @@ struct pglist_data;
  * cachelines.  There are very few zone structures in the machine, so space
  * consumption is not a concern here.
  */
-#if defined(CONFIG_SMP)
-struct zone_padding {
-	char x[0];
-} ____cacheline_internodealigned_in_smp;
-#define ZONE_PADDING(name)	struct zone_padding name;
-#else
 #define ZONE_PADDING(name)
-#endif
 
 #ifdef CONFIG_NUMA
 enum numa_stat_item {
@@ -284,10 +277,6 @@ struct per_cpu_pageset {
 #ifdef CONFIG_NUMA
 	s8 expire;
 	u16 vm_numa_stat_diff[NR_VM_NUMA_STAT_ITEMS];
-#endif
-#ifdef CONFIG_SMP
-	s8 stat_threshold;
-	s8 vm_stat_diff[NR_VM_ZONE_STAT_ITEMS];
 #endif
 };
 

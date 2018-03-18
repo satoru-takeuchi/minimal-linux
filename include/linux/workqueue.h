@@ -604,19 +604,8 @@ static inline bool schedule_delayed_work(struct delayed_work *dwork,
 	return queue_delayed_work(system_wq, dwork, delay);
 }
 
-#ifndef CONFIG_SMP
-static inline long work_on_cpu(int cpu, long (*fn)(void *), void *arg)
-{
-	return fn(arg);
-}
-static inline long work_on_cpu_safe(int cpu, long (*fn)(void *), void *arg)
-{
-	return fn(arg);
-}
-#else
 long work_on_cpu(int cpu, long (*fn)(void *), void *arg);
 long work_on_cpu_safe(int cpu, long (*fn)(void *), void *arg);
-#endif /* CONFIG_SMP */
 
 #ifdef CONFIG_FREEZER
 extern void freeze_workqueues_begin(void);
@@ -636,12 +625,6 @@ void wq_watchdog_touch(int cpu);
 #else	/* CONFIG_WQ_WATCHDOG */
 static inline void wq_watchdog_touch(int cpu) { }
 #endif	/* CONFIG_WQ_WATCHDOG */
-
-#ifdef CONFIG_SMP
-int workqueue_prepare_cpu(unsigned int cpu);
-int workqueue_online_cpu(unsigned int cpu);
-int workqueue_offline_cpu(unsigned int cpu);
-#endif
 
 int __init workqueue_init_early(void);
 int __init workqueue_init(void);
