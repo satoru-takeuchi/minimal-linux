@@ -107,13 +107,6 @@ static inline void cpu_load_update_active(struct rq *this_rq) { }
 #define NICE_0_LOAD		(1L << NICE_0_LOAD_SHIFT)
 
 /*
- * Single value that decides SCHED_DEADLINE internal math precision.
- * 10 -> just above 1us
- * 9  -> just above 0.5us
- */
-#define DL_SCALE (10)
-
-/*
  * These are the 'tuning knobs' of the scheduler:
  */
 
@@ -131,137 +124,10 @@ static inline int fair_policy(int policy)
 	return policy == SCHED_NORMAL || policy == SCHED_BATCH;
 }
 
-static inline int rt_policy(int policy)
-{
-	return policy == SCHED_FIFO || policy == SCHED_RR;
-}
-
-static inline int dl_policy(int policy)
-{
-	return policy == SCHED_DEADLINE;
-}
 static inline bool valid_policy(int policy)
 {
-	return idle_policy(policy) || fair_policy(policy) ||
-		rt_policy(policy) || dl_policy(policy);
+	return idle_policy(policy) || fair_policy(policy);
 }
-
-static inline int task_has_rt_policy(struct task_struct *p)
-{
-	return rt_policy(p->policy);
-}
-
-static inline int task_has_dl_policy(struct task_struct *p)
-{
-	return dl_policy(p->policy);
-}
-
-/*
- * Tells if entity @a should preempt entity @b.
- */
-static inline bool
-dl_entity_preempt(struct sched_dl_entity *a, struct sched_dl_entity *b)
-{
-	return dl_time_before(a->deadline, b->deadline);
-}
-
-/*
- * This is the priority-queue data structure of the RT scheduling class:
- */
-struct rt_prio_array {
-	DECLARE_BITMAP(bitmap, MAX_RT_PRIO+1); /* include 1 bit for delimiter */
-	struct list_head queue[MAX_RT_PRIO];
-};
-
-struct rt_bandwidth {
-	/* nests inside the rq lock: */
-	raw_spinlock_t		rt_runtime_lock;
-	ktime_t			rt_period;
-	u64			rt_runtime;
-	struct hrtimer		rt_period_timer;
-	unsigned int		rt_period_active;
-};
-
-void __dl_clear_params(struct task_struct *p);
-
-/*
- * To keep the bandwidth of -deadline tasks and groups under control
- * we need some place where:
- *  - store the maximum -deadline bandwidth of the system (the group);
- *  - cache the fraction of that bandwidth that is currently allocated.
- *
- * This is all done in the data structure below. It is similar to the
- * one used for RT-throttling (rt_bandwidth), with the main difference
- * that, since here we are only interested in admission control, we
- * do not decrease any runtime while the group "executes", neither we
- * need a timer to replenish it.
- *
- * With respect to SMP, the bandwidth is given on a per-CPU basis,
- * meaning that:
- *  - dl_bw (< 100%) is the bandwidth of the system (group) on each CPU;
- *  - dl_total_bw array contains, in the i-eth element, the currently
- *    allocated bandwidth on the i-eth CPU.
- * Moreover, groups consume bandwidth on each CPU, while tasks only
- * consume bandwidth on the CPU they're running on.
- * Finally, dl_total_bw_cpu is used to cache the index of dl_total_bw
- * that will be shown the next time the proc or cgroup controls will
- * be red. It on its turn can be changed by writing on its own
- * control.
- */
-struct dl_bandwidth {
-	raw_spinlock_t dl_runtime_lock;
-	u64 dl_runtime;
-	u64 dl_period;
-};
-
-static inline int dl_bandwidth_enabled(void)
-{
-	return sysctl_sched_rt_runtime >= 0;
-}
-
-struct dl_bw {
-	raw_spinlock_t lock;
-	u64 bw, total_bw;
-};
-
-static inline void __dl_update(struct dl_bw *dl_b, s64 bw);
-
-static inline
-void __dl_sub(struct dl_bw *dl_b, u64 tsk_bw, int cpus)
-{
-	dl_b->total_bw -= tsk_bw;
-	__dl_update(dl_b, (s32)tsk_bw / cpus);
-}
-
-static inline
-void __dl_add(struct dl_bw *dl_b, u64 tsk_bw, int cpus)
-{
-	dl_b->total_bw += tsk_bw;
-	__dl_update(dl_b, -((s32)tsk_bw / cpus));
-}
-
-static inline
-bool __dl_overflow(struct dl_bw *dl_b, int cpus, u64 old_bw, u64 new_bw)
-{
-	return dl_b->bw != -1 &&
-	       dl_b->bw * cpus < dl_b->total_bw - old_bw + new_bw;
-}
-
-void dl_change_utilization(struct task_struct *p, u64 new_bw);
-extern void init_dl_bw(struct dl_bw *dl_b);
-extern int sched_dl_global_validate(void);
-extern void sched_dl_do_global(void);
-extern int sched_dl_overflow(struct task_struct *p, int policy,
-			     const struct sched_attr *attr);
-extern void __setparam_dl(struct task_struct *p, const struct sched_attr *attr);
-extern void __getparam_dl(struct task_struct *p, struct sched_attr *attr);
-extern bool __checkparam_dl(const struct sched_attr *attr);
-extern bool dl_param_changed(struct task_struct *p, const struct sched_attr *attr);
-extern int dl_task_can_attach(struct task_struct *p,
-			      const struct cpumask *cs_cpus_allowed);
-extern int dl_cpuset_cpumask_can_shrink(const struct cpumask *cur,
-					const struct cpumask *trial);
-extern bool dl_cpu_busy(unsigned int cpu);
 
 #ifdef CONFIG_CGROUP_SCHED
 
@@ -510,98 +376,6 @@ static inline int rt_bandwidth_enabled(void)
 # define HAVE_RT_PUSH_IPI
 #endif
 
-/* Real-Time classes' related field in a runqueue: */
-struct rt_rq {
-	struct rt_prio_array active;
-	unsigned int rt_nr_running;
-	unsigned int rr_nr_running;
-#if defined CONFIG_SMP || defined CONFIG_RT_GROUP_SCHED
-	struct {
-		int curr; /* highest queued rt task prio */
-#ifdef CONFIG_SMP
-		int next; /* next highest */
-#endif
-	} highest_prio;
-#endif
-#ifdef CONFIG_SMP
-	unsigned long rt_nr_migratory;
-	unsigned long rt_nr_total;
-	int overloaded;
-	struct plist_head pushable_tasks;
-#endif /* CONFIG_SMP */
-	int rt_queued;
-
-	int rt_throttled;
-	u64 rt_time;
-	u64 rt_runtime;
-	/* Nests inside the rq lock: */
-	raw_spinlock_t rt_runtime_lock;
-
-#ifdef CONFIG_RT_GROUP_SCHED
-	unsigned long rt_nr_boosted;
-
-	struct rq *rq;
-	struct task_group *tg;
-#endif
-};
-
-/* Deadline class' related fields in a runqueue */
-struct dl_rq {
-	/* runqueue is an rbtree, ordered by deadline */
-	struct rb_root_cached root;
-
-	unsigned long dl_nr_running;
-
-#ifdef CONFIG_SMP
-	/*
-	 * Deadline values of the currently executing and the
-	 * earliest ready task on this rq. Caching these facilitates
-	 * the decision wether or not a ready but not running task
-	 * should migrate somewhere else.
-	 */
-	struct {
-		u64 curr;
-		u64 next;
-	} earliest_dl;
-
-	unsigned long dl_nr_migratory;
-	int overloaded;
-
-	/*
-	 * Tasks on this rq that can be pushed away. They are kept in
-	 * an rb-tree, ordered by tasks' deadlines, with caching
-	 * of the leftmost (earliest deadline) element.
-	 */
-	struct rb_root_cached pushable_dl_tasks_root;
-#else
-	struct dl_bw dl_bw;
-#endif
-	/*
-	 * "Active utilization" for this runqueue: increased when a
-	 * task wakes up (becomes TASK_RUNNING) and decreased when a
-	 * task blocks
-	 */
-	u64 running_bw;
-
-	/*
-	 * Utilization of the tasks "assigned" to this runqueue (including
-	 * the tasks that are in runqueue and the tasks that executed on this
-	 * CPU and blocked). Increased when a task moves to this runqueue, and
-	 * decreased when the task moves away (migrates, changes scheduling
-	 * policy, or terminates).
-	 * This is needed to compute the "inactive utilization" for the
-	 * runqueue (inactive utilization = this_bw - running_bw).
-	 */
-	u64 this_bw;
-	u64 extra_bw;
-
-	/*
-	 * Inverse of the fraction of CPU utilization that can be reclaimed
-	 * by the GRUB algorithm.
-	 */
-	u64 bw_ratio;
-};
-
 #ifdef CONFIG_SMP
 
 static inline bool sched_asym_prefer(int a, int b)
@@ -708,8 +482,6 @@ struct rq {
 	u64 nr_switches;
 
 	struct cfs_rq cfs;
-	struct rt_rq rt;
-	struct dl_rq dl;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
@@ -1504,11 +1276,9 @@ static inline void set_curr_task(struct rq *rq, struct task_struct *curr)
 	curr->sched_class->set_curr_task(rq);
 }
 
-#ifdef CONFIG_SMP
-#define sched_class_highest (&stop_sched_class)
-#else
-#define sched_class_highest (&dl_sched_class)
-#endif
+
+#define sched_class_highest (&fair_sched_class)
+
 #define for_each_class(class) \
    for (class = sched_class_highest; class; class = class->next)
 
@@ -1567,15 +1337,6 @@ extern void reweight_task(struct task_struct *p, int prio);
 
 extern void resched_curr(struct rq *rq);
 extern void resched_cpu(int cpu);
-
-extern struct rt_bandwidth def_rt_bandwidth;
-extern void init_rt_bandwidth(struct rt_bandwidth *rt_b, u64 period, u64 runtime);
-
-extern struct dl_bandwidth def_dl_bandwidth;
-extern void init_dl_bandwidth(struct dl_bandwidth *dl_b, u64 period, u64 runtime);
-extern void init_dl_task_timer(struct sched_dl_entity *dl_se);
-extern void init_dl_inactive_task_timer(struct sched_dl_entity *dl_se);
-extern void init_dl_rq_bw_ratio(struct dl_rq *dl_rq);
 
 #define BW_SHIFT	20
 #define BW_UNIT		(1 << BW_SHIFT)
@@ -2004,8 +1765,6 @@ print_numa_stats(struct seq_file *m, int node, unsigned long tsf,
 #endif /* CONFIG_SCHED_DEBUG */
 
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
-extern void init_rt_rq(struct rt_rq *rt_rq);
-extern void init_dl_rq(struct dl_rq *dl_rq);
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);
@@ -2022,33 +1781,6 @@ extern void nohz_balance_exit_idle(unsigned int cpu);
 #else
 static inline void nohz_balance_exit_idle(unsigned int cpu) { }
 #endif
-
-
-#ifdef CONFIG_SMP
-static inline
-void __dl_update(struct dl_bw *dl_b, s64 bw)
-{
-	struct root_domain *rd = container_of(dl_b, struct root_domain, dl_bw);
-	int i;
-
-	RCU_LOCKDEP_WARN(!rcu_read_lock_sched_held(),
-			 "sched RCU must be held");
-	for_each_cpu_and(i, rd->span, cpu_active_mask) {
-		struct rq *rq = cpu_rq(i);
-
-		rq->dl.extra_bw += bw;
-	}
-}
-#else
-static inline
-void __dl_update(struct dl_bw *dl_b, s64 bw)
-{
-	struct dl_rq *dl = container_of(dl_b, struct dl_rq, dl_bw);
-
-	dl->extra_bw += bw;
-}
-#endif
-
 
 #ifdef CONFIG_IRQ_TIME_ACCOUNTING
 struct irqtime {
