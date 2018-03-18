@@ -58,24 +58,7 @@ struct linux_binprm;
  */
 static inline int ptrace_report_syscall(struct pt_regs *regs)
 {
-	int ptrace = current->ptrace;
-
-	if (!(ptrace & PT_PTRACED))
-		return 0;
-
-	ptrace_notify(SIGTRAP | ((ptrace & PT_TRACESYSGOOD) ? 0x80 : 0));
-
-	/*
-	 * this isn't the same as continuing with a signal, but it will do
-	 * for normal use.  strace only continues with a signal if the
-	 * stopping signal is not SIGTRAP.  -brl
-	 */
-	if (current->exit_code) {
-		send_sig(current->exit_code, current, 1);
-		current->exit_code = 0;
-	}
-
-	return fatal_signal_pending(current);
+	return 0;
 }
 
 /**
@@ -100,7 +83,7 @@ static inline int ptrace_report_syscall(struct pt_regs *regs)
 static inline __must_check int tracehook_report_syscall_entry(
 	struct pt_regs *regs)
 {
-	return ptrace_report_syscall(regs);
+	return -ENOSYS;
 }
 
 /**
@@ -122,14 +105,7 @@ static inline __must_check int tracehook_report_syscall_entry(
  */
 static inline void tracehook_report_syscall_exit(struct pt_regs *regs, int step)
 {
-	if (step) {
-		siginfo_t info;
-		user_single_step_siginfo(current, regs, &info);
-		force_sig_info(SIGTRAP, &info, current);
-		return;
-	}
-
-	ptrace_report_syscall(regs);
+	;
 }
 
 /**
@@ -145,8 +121,7 @@ static inline void tracehook_report_syscall_exit(struct pt_regs *regs, int step)
  */
 static inline void tracehook_signal_handler(int stepping)
 {
-	if (stepping)
-		ptrace_notify(SIGTRAP);
+	;
 }
 
 /**
@@ -160,10 +135,7 @@ static inline void tracehook_signal_handler(int stepping)
  */
 static inline void set_notify_resume(struct task_struct *task)
 {
-#ifdef TIF_NOTIFY_RESUME
-	if (!test_and_set_tsk_thread_flag(task, TIF_NOTIFY_RESUME))
-		kick_process(task);
-#endif
+	;
 }
 
 /**
@@ -181,16 +153,7 @@ static inline void set_notify_resume(struct task_struct *task)
  */
 static inline void tracehook_notify_resume(struct pt_regs *regs)
 {
-	/*
-	 * The caller just cleared TIF_NOTIFY_RESUME. This barrier
-	 * pairs with task_work_add()->set_notify_resume() after
-	 * hlist_add_head(task->task_works);
-	 */
-	smp_mb__after_atomic();
-	if (unlikely(current->task_works))
-		task_work_run();
-
-	mem_cgroup_handle_over_high();
+	;
 }
 
 #endif	/* <linux/tracehook.h> */
