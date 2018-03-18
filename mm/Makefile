@@ -50,5 +50,5 @@ obj-$(CONFIG_HAVE_MEMBLOCK) += memblock.o
 obj-$(CONFIG_HAS_DMA)	+= dmapool.o
 obj-$(CONFIG_SPARSEMEM)	+= sparse.o
 obj-$(CONFIG_SPARSEMEM_VMEMMAP) += sparse-vmemmap.o
-obj-$(CONFIG_SLUB) += slub.o
+obj-$(CONFIG_SLOB) += slob.o
 obj-$(CONFIG_GENERIC_EARLY_IOREMAP) += early_ioremap.o
